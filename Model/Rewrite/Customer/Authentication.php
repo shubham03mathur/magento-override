@@ -9,10 +9,6 @@
            if($customerSecure){
                return true;
            }
-           else
-           {
-           	 echo __('Please Enter Valid Email Address');
-           }
            return parent::authenticate($customerId, $password);
         }   
     }
