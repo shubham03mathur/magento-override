@@ -1,29 +1,67 @@
 <?php
 namespace Excellence\Override\Controller\Rewrite\Customer\Account;
- 
- 
-class LoginPost extends \Magento\Framework\App\Action\Action
+use Magento\Customer\Model\Account\Redirect as AccountRedirect;
+use Magento\Framework\App\Action\Context;
+use Magento\Customer\Model\Session;
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Model\Url as CustomerUrl;
+use Magento\Framework\Exception\EmailNotConfirmedException;
+use Magento\Framework\Exception\AuthenticationException;
+use Magento\Framework\Data\Form\FormKey\Validator;
+use Magento\Framework\Exception\State\UserLockedException;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+class LoginPost extends \Magento\Customer\Controller\AbstractAccount
 {
+    protected $customerAccountManagement;
+    protected $accountRedirect;
+    protected $formKeyValidator;
+    protected $accountRedirect;
+    protected $session;
+    private $scopeConfig;
+
+
     public function __construct(
+        Context $context,
+        Session $customerSession,
+        AccountManagementInterface $customerAccountManagement,
+        CustomerUrl $customerHelperData,
+        Validator $formKeyValidator,
+        AccountRedirect $accountRedirect,
         \Magento\Framework\App\Action\Context $context)
     {
+        $this->session = $customerSession;
+        $this->customerAccountManagement = $customerAccountManagement;
+        $this->customerUrl = $customerHelperData;
+        $this->formKeyValidator = $formKeyValidator;
+        $this->accountRedirect = $accountRedirect;
+       
         return parent::__construct($context);
+    }
+    private function getScopeConfig()
+    {
+        if (!($this->scopeConfig instanceof \Magento\Framework\App\Config\ScopeConfigInterface)) {
+            return \Magento\Framework\App\ObjectManager::getInstance()->get(
+                'Magento\Framework\App\Config\ScopeConfigInterface'
+            );
+        } else {
+            return $this->scopeConfig;
+        }
     }
      
     public function execute()
-    {
-        
+    { 
         if ($this->session->isLoggedIn() || !$this->formKeyValidator->validate($this->getRequest())) {
             /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
             $resultRedirect = $this->resultRedirectFactory->create();
             $resultRedirect->setPath('*/*/');
             return $resultRedirect;
         }
+       
         if ($this->getRequest()->isPost()) {
             $login = $this->getRequest()->getPost('login');
+           
             if (!empty($login['username']) && !empty($login['password'])) {
-                try {
-                     print_r('Its working so far!!'); die();
+                try{
                     $customer = $this->customerAccountManagement->authenticate($login['username'], $login['password']);
                     $this->session->setCustomerDataAsLoggedIn($customer);
                     $this->session->regenerateId();
@@ -31,11 +69,11 @@ class LoginPost extends \Magento\Framework\App\Action\Action
                     if (!$this->getScopeConfig()->getValue('customer/startup/redirect_dashboard') && $redirectUrl) {
                         $this->accountRedirect->clearRedirectCookie();
                         $resultRedirect = $this->resultRedirectFactory->create();
-                        // URL is checked to be internal in $this->_redirect->success()
                         $resultRedirect->setUrl($this->_redirect->success($redirectUrl));
                         return $resultRedirect;
                     }
-                } catch (EmailNotConfirmedException $e) {
+               }
+               catch (EmailNotConfirmedException $e) {
                     $value = $this->customerUrl->getEmailConfirmationUrl($login['username']);
                     $message = __(
                         'This account is not confirmed. <a href="%1">Click here</a> to resend confirmation email.',
@@ -54,18 +92,13 @@ class LoginPost extends \Magento\Framework\App\Action\Action
                     $message = __('Invalid login or password.');
                     $this->messageManager->addError($message);
                     $this->session->setUsername($login['username']);
-                } catch (\Exception $e) {
-                    // PA DSS violation: throwing or logging an exception here can disclose customer password
-                    $this->messageManager->addError(
-                        __('An unspecified error occurred. Please contact us for assistance.')
-                    );
                 }
-            } else {
-                $this->messageManager->addError(__('A login and a password are required.'));
+            }   
+            else {
+                $this->messageManager->addError(__('A login is required.'));
             }
         }
         return $this->accountRedirect->getRedirect();
+    }      
+} 
 
-        return parent::execute();
-    } 
-}
