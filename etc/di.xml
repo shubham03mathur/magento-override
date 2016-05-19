@@ -1,4 +1,7 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <preference for="Magento\Customer\Model\Authentication" type="Excellence\Override\Model\Rewrite\Customer\Authentication" />
+    <type name="Excellence\Override\Model\Rewrite\Customer\Authentication">
+    <plugin name="excellence-login-plugin" type="Excellence\Override\Model\Rewrite\Customer\Authentication\Plugin" sortOrder="10" />
+    </type>
 </config>

@@ -5,11 +5,11 @@
     {
         public function authenticate($customerId, $password)
        {
-           $customerSecure = $this->customerRegistry->retrieveSecureData($customerId);
-           if($customerSecure){
-               return true;
-           }
-           return parent::authenticate($customerId, $password);
+          $customerSecure = $this->customerRegistry->retrieveSecureData($customerId);
+          if($customerSecure){
+            return true;
+          }
+          return parent::authenticate($customerId, $password);
         }   
     }
 ?>
