@@ -10,7 +10,7 @@ class Plugin
     }
  
     public function beforeAuthenticate($subject,$customerId, $password){
-    	$this->messageManager->addSuccess('Authenticating...');
+    	$this->messageManager->addSuccess('Authenticating...'); 
         return [$customerId, $password];
     }
 }
